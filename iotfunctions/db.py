@@ -921,7 +921,7 @@ class Database(object):
         
         '''
         
-        df = pd.read_sql(sql=query.statement, con = self.connection )
+        df = pd.read_sql_query(sql=query.statement, con = self.connection )
         return df
         
         
@@ -991,14 +991,14 @@ class Database(object):
                              end_ts = end_ts,
                              entities = entities,
                              dimension = dimension)
-        df = pd.read_sql(sql=q.statement,con=self.connection,parse_dates=parse_dates,columns=columns)
+        df = pd.read_sql_query(sql=q.statement,con=self.connection,parse_dates=parse_dates,columns=columns)
         return(df)
         
     def read_sql(self,sql,parse_dates =None,columns=None):
         '''
         Read whole table and return as dataframe
         '''
-        df = pd.read_sql(sql,con=self.connection,parse_dates=parse_dates,columns=columns)
+        df = pd.read_sql_query(sql,con=self.connection,parse_dates=parse_dates,columns=columns)
         return(df)
 
     def read_query(self,query,parse_dates =None,columns=None):
@@ -1011,7 +1011,7 @@ class Database(object):
         except AttributeError:
             pass
         
-        df = pd.read_sql(query,con=self.connection,parse_dates=parse_dates,columns=columns)
+        df = pd.read_sql_query(query,con=self.connection,parse_dates=parse_dates,columns=columns)
         return(df)
         
     def read_agg(self, table_name, schema, agg_dict,
@@ -1063,7 +1063,7 @@ class Database(object):
                 )
 
         sql = query.statement.compile(compile_kwargs={"literal_binds": True})
-        df = pd.read_sql(sql,con = self.connection)
+        df = pd.read_sql_query(sql,con = self.connection)
         logger.debug(sql)
         if pandas_aggregate is not None:
             df = resample(df=df,time_frequency=pandas_aggregate,timestamp=timestamp,dimensions=groupby,agg=agg_dict)
