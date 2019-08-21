@@ -349,10 +349,12 @@ class Database(object):
         '''
 
         try:
-            return table.c[column].isnot(None)
+            return (self.get_column_object(table,column)).isnot(None)
+            #return table.c[column].isnot(None)
         except KeyError:
             try:
-                return dimension_table.c[column].isnot(None)
+                return (self.get_column_object(dimension_table,column)).isnot(None)
+               #return dimension_table.c[column].isnot(None)
             except (KeyError, AttributeError):
                 msg = 'Column %s not found on time series or dimension table.' % column
                 raise ValueError(msg)
@@ -510,7 +512,7 @@ class Database(object):
             logger.debug(msg)
         self.commit()
 
-    def drop_table(self, table_name, schema=None):
+    def drop_table(self, table_name, schema=None, recreate = False):
 
         try:
             table = self.get_table(table_name, schema)
@@ -524,6 +526,11 @@ class Database(object):
                 msg = 'Dropped table name %s' % table.name
                 self.session.commit()
                 logger.debug(msg)
+
+        if recreate:
+            self.create(tables=[table])
+            msg = 'Recreated table %s'
+            logger.debug(msg,table_name)
 
     def execute_job(self, entity_type, schema=None, **kwargs):
 
@@ -615,6 +622,7 @@ class Database(object):
                 }
                 try:
                     table = Table(table_name, self.metadata, autoload=True, autoload_with=self.connection, **kwargs)
+                    table.indexes = set()
                 except NoSuchTableError:
                     raise KeyError('Table %s does not exist in the schema %s ' % (table_name, schema))
             elif issubclass(table_name.__class__, BaseTable):
@@ -1667,6 +1675,10 @@ class Database(object):
                     metric_filter = self._is_not_null(table=table, dimension_table=dim, column=item)
                     filter_query = filter_query.filter(metric_filter)
 
+                    if time_grain is not None:
+                        timestamp_col_obj = self.get_column_object(table, timestamp)
+                        timecolumnobj = Column("timestamp_filter")
+                        filter_query = filter_query.filter(timestamp_col_obj == timecolumnobj)
                     # prepare a main query containing
                     # define the join keys
                     # define a projection list containing the output item and groupby cols
@@ -1703,7 +1715,7 @@ class Database(object):
                         entities=entities,
                         filters=filters,
                         deviceid_col=deviceid_col)
-
+                    query = query.filter(metric_filter)
                     if filters is not None:
                         table = self.get_table(table_name, schema)
                         query = self.subquery_join_with_filters(query, filter_query, filters, table, *keys, **project)

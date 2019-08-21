@@ -511,16 +511,12 @@ class DateDifference(BaseTransformer):
 
         if self.date_1 is None or self.date_1 == self._entity_type._timestamp:
             ds_1 = self.get_timestamp_series(df)
-            if isinstance(ds_1, pd.DatetimeIndex):
-                ds_1 = pd.Series(data=ds_1, index=df.index)
             ds_1 = pd.to_datetime(ds_1)
         else:
             ds_1 = df[self.date_1]
 
         if self.date_2 is None or self.date_2 == self._entity_type._timestamp:
             ds_2 = self.get_timestamp_series(df)
-            if isinstance(ds_2, pd.DatetimeIndex):
-                ds_2 = pd.Series(data=ds_2, index=df.index)
             ds_2 = pd.to_datetime(ds_2)
         else:
             ds_2 = df[self.date_2]
@@ -578,8 +574,6 @@ class DateDifferenceConstant(BaseTransformer):
 
         if self.date_1 is None or self.date_1 == self._entity_type._timestamp:
             ds_1 = self.get_timestamp_series(df)
-            if isinstance(ds_1, pd.DatetimeIndex):
-                ds_1 = pd.Series(data=ds_1, index=df.index)
             ds_1 = pd.to_datetime(ds_1)
         else:
             ds_1 = df[self.date_1]
@@ -784,8 +778,8 @@ class EntityDataGenerator(BasePreload):
     freq = '5min'
     scd_frequency = '1D'
     activity_frequency = '3D'
-    start_entity_id = 73000  # used to build entity ids
-    auto_entity_count = 5  # default number of entities to generate data fo
+    start_entity_id = 73000 #used to build entity ids
+    auto_entity_count = 5 #default number of entities to generate data for
     data_item_mean = None
     data_item_sd = None
     data_item_domain = None
@@ -1820,8 +1814,6 @@ class TimestampCol(BaseTransformer):
 
     def execute(self, df):
         ds_1 = self.get_timestamp_series(df)
-        if isinstance(ds_1, pd.DatetimeIndex):
-            ds_1 = pd.Series(data=ds_1, index=df.index)
         ds_1 = pd.to_datetime(ds_1)
         df[self.output_item] = ds_1
 
