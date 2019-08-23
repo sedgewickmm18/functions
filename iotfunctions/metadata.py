@@ -364,6 +364,9 @@ class EntityType(object):
             self._functions = []
         self._functions.extend(functions)
 
+        if name is not None and db is not None and not self.is_local:
+            db.entity_type_metadata[self.logical_name] = self
+
         logger.debug(('Initialized entity type %s'), str(self))
 
     def add_activity_table(self, name, activities, *args, **kwargs):
@@ -422,7 +425,7 @@ class EntityType(object):
                                                   **kwargs)
 
         try:
-            sqltable = self.db.get_table(name, self._db_schema)
+            self.db.get_table(name, self._db_schema)
         except KeyError:
             table.create()
         self.scd[property_name] = table
@@ -2048,7 +2051,7 @@ class EntityType(object):
     def _set_end_date(self, df):
 
         df['end_date'] = df['start_date'].shift(-1)
-        df['end_date'] = df['end_date'] - pd.Timedelta(seconds=1)
+        df['end_date'] = df['end_date'] - pd.Timedelta(microseconds=1)
         df['end_date'] = df['end_date'].fillna(pd.Timestamp.max)
         return df
 

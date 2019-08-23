@@ -829,7 +829,7 @@ class EntityDataGenerator(BasePreload):
         # Add scds
         for key, values in list(self.scds.items()):
             self._entity_type.add_slowly_changing_dimension(
-                key, String())
+                    key,String(255))
             self.data_item_domain[key] = values
 
         # Add activities metadata to entity type        
@@ -987,6 +987,7 @@ class GetEntityData(BaseDataSource):
     """
 
     merge_method = 'outer'
+    allow_projection_list_trim = False
 
     def __init__(self, source_entity_type_name, key_map_column, input_items,
                  output_items=None):
