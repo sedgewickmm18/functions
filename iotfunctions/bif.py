@@ -580,6 +580,10 @@ class DateDifferenceConstant(BaseTransformer):
 
         c = self._entity_type.get_attributes_dict()
         constant_value = c[self.date_constant]
+
+        if isinstance(constant_value, int):
+           constant_value = dt.datetime.fromtimestamp(constant_value)
+
         ds_2 = pd.Series(data=constant_value, index=df.index)
         ds_2 = pd.to_datetime(ds_2)
         df[self.num_days] = (ds_2 - ds_1). \
