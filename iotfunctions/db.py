@@ -608,7 +608,7 @@ class Database(object):
                 msg = 'Entity %s not found in the database metadata' %name
                 raise KeyError(msg)
         else:
-            entity = md.EntityType(name=name,
+            entity = md.EntityType(name=metadata['metricTableName'],
                                db=self,
                                **{
                                    'auto_create_table': False,
