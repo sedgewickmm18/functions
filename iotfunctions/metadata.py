@@ -160,8 +160,10 @@ class EntityType(object):
     is_entity_type = True
     is_local = False
     auto_create_table = True
+    aggregate_complete_periods = True # align data for aggregation with time grain to avoid partial periods
     log_table = 'KPI_LOGGING'  # deprecated, to be removed
     checkpoint_table = 'KPI_CHECKPOINT'  # deprecated,to be removed
+    chunk_size = None # use job controller default chunk
     default_backtrack = None
     trace_df_changes = True
     drop_existing = False
@@ -362,6 +364,9 @@ class EntityType(object):
             self._functions = []
         self._functions.extend(functions)
 
+        if name is not None and db is not None and not self.is_local:
+            db.entity_type_metadata[self.logical_name] = self
+
         logger.debug(('Initialized entity type %s'), str(self))
 
     def add_activity_table(self, name, activities, *args, **kwargs):
@@ -420,7 +425,7 @@ class EntityType(object):
                                                   **kwargs)
 
         try:
-            sqltable = self.db.get_table(name, self._db_schema)
+            self.db.get_table(name, self._db_schema)
         except KeyError:
             table.create()
         self.scd[property_name] = table
@@ -629,6 +634,8 @@ class EntityType(object):
         Convert AS granularity metadata to granularity objects.
 
         '''
+
+
         out = {}
         for g in grain_meta:
             grouper = []
@@ -647,6 +654,9 @@ class EntityType(object):
                             ' must exist in the frequency lookup %s' % (
                                 g['frequency'], freq_lookup)
                     ))
+                # add a number to the frequency to make it compatible with pd.Timedelta
+                if freq[0] not in ['1','2','3','4','5','6','7','8','9']:
+                    freq = '1' + freq
                 grouper.append(pd.Grouper(key=self._timestamp,
                                           freq=freq))
             custom_calendar = None
@@ -1064,16 +1074,17 @@ class EntityType(object):
 
         return (df, ts_col_name)
 
-    def drop_tables(self):
+    def drop_tables(self,recreate=False):
         '''
         Drop tables known to be associated with this entity type
 
         '''
 
-        self.db.drop_table(self.name, schema=self._db_schema)
-        self.drop_child_tables()
+        self.db.drop_table(self.name, schema=self._db_schema,recreate=recreate)
+        self.drop_child_tables(recreate = recreate)
 
-    def drop_child_tables(self):
+
+    def drop_child_tables(self,recreate=False):
         '''
         Drop all child tables
         '''
@@ -1083,10 +1094,13 @@ class EntityType(object):
                    ' are not allowed to drop child tables ')
             raise ValueError(msg)
 
-        tables = [self._dimension_table_name]
+        if self._dimension_table_name is None:
+            tables = []
+        else:
+            tables = [self._dimension_table_name]
         tables.extend(self.activity_tables.values())
         tables.extend(self.scd.values())
-        [self.db.drop_table(x, self._db_schema) for x in tables]
+        [self.db.drop_table(x, self._db_schema,recreate=recreate) for x in tables]
         msg = 'dropped tables %s' % tables
         logger.info(msg)
 
@@ -1468,7 +1482,9 @@ class EntityType(object):
                       freq='1min', scd_freq='1D', write=True, drop_existing=False,
                       data_item_mean=None, data_item_sd=None,
                       data_item_domain=None,
-                      columns=None):
+                      columns=None,
+                      start_entity_id = None,
+                      auto_entity_count = None):
         '''
         Generate random time series data for entities
         
@@ -1495,7 +1511,11 @@ class EntityType(object):
         
         '''
         if entities is None:
-            entities = [str(self._start_entity_id + x) for x in list(range(self._auto_entity_count))]
+            if start_entity_id is None:
+                start_entity_id = self._start_entity_id
+            if auto_entity_count is None:
+                auto_entity_count = self._auto_entity_count
+            entities = [str(start_entity_id + x) for x in list(range(auto_entity_count))]
 
         if data_item_mean is None:
             data_item_mean = {}
@@ -1505,7 +1525,7 @@ class EntityType(object):
             data_item_domain = {}
 
         if drop_existing and self.db is not None:
-            self.drop_tables()
+            self.drop_tables(recreate = True)
 
         known_categoricals = set(data_item_domain.keys())
 
@@ -2031,7 +2051,7 @@ class EntityType(object):
     def _set_end_date(self, df):
 
         df['end_date'] = df['start_date'].shift(-1)
-        df['end_date'] = df['end_date'] - pd.Timedelta(seconds=1)
+        df['end_date'] = df['end_date'] - pd.Timedelta(microseconds=1)
         df['end_date'] = df['end_date'].fillna(pd.Timestamp.max)
         return df
 
@@ -2594,6 +2614,41 @@ class Granularity(object):
             )
 
         self.grouper = grouper
+
+    def align_df_to_start_date(self,df,min_date = None):
+
+        '''
+        Align a dataframe to the granularity by filtering out times periods that
+        are incomplete, ie: started before the earliest date in the dataframe.
+
+        example: consider a daily grain with a dateframe containing data
+        from 2019/08/05 8:09am. After alignment the dataframe will be filtered
+        to exclude timestamps before the start of the first complete day (2019/08/06).
+        '''
+
+        if min_date is None:
+            min_date = df[self.timestamp].min()
+
+        period_end = self.get_period_end(min_date)
+        df = df[(df[self.timestamp] > period_end)]
+
+        return (df,period_end)
+
+    def get_period_end(self,date):
+
+        '''
+        Get the start date of the next period after <date>
+        '''
+
+        if self.custom_calendar is not None:
+            result = self.custom_calendar.get_period_end(date)
+        else:
+            series = pd.DatetimeIndex(data=[date])
+            rounded = series.round(self.freq)
+            result = rounded - dt.timedelta(microseconds=1)
+            result = result.min()
+
+        return result
 
     def __str__(self):
 
