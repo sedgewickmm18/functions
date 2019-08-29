@@ -3739,6 +3739,7 @@ class CalcPipeline:
                                                 register = register,
                                                 dropna =  dropna
                                                 )
+            df = self.entity_type.index_df(df)
 
         else:
             stages = []

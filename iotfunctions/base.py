@@ -346,7 +346,11 @@ class BaseFunction(object):
                     group_base.append(pd.Grouper(axis=0, level=df.index.names.index(s)))
                     
         if len(group_base)>0:
-            df = df.groupby(group_base).apply(self._calc)                
+            entity_type = self.get_entity_type()
+
+            df = df.groupby(group_base).apply(self._calc)
+
+            df = entity_type.index_df(df)
         else:
             df = self._calc(df)
             

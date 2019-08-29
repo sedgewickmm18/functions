@@ -988,13 +988,44 @@ class EntityType(object):
                 df = df.set_index([self._df_index_entity_id,
                                    self._timestamp])
             except KeyError:
+                try:
+                    if df.index.names[0] is None:
+                        df.index.set_names( "__unknown_index_0__", level=0, inplace=True)
+                except BaseException:
+                    pass
+
+                try:
+                    if df.index.names[1] is None:
+                        df.index.set_names( "__unknown_index_1__", level=1, inplace=True)
+                except BaseException:
+                    pass
+
                 df = reset_df_index(df, auto_index_name=self.auto_index_name)
+
+                try:
+                    del df['__unknown_index_0__']
+                except BaseException:
+                    pass
+
+                try:
+                    del df['__unknown_index_1__']
+                except BaseException:
+                    pass
+
                 try:
                     df = df.set_index([self._df_index_entity_id,
                                        self._timestamp])
                 except KeyError:
                     try:
                         df[self._df_index_entity_id] = df[self._entity_id]
+                    except KeyError:
+                        pass
+                    try:
+                        df[self._timestamp] = df[self._timestamp_col]
+                    except KeyError:
+                        pass
+                    try:
+
                         df = df.set_index([self._df_index_entity_id,
                                            self._timestamp])
                     except KeyError:
