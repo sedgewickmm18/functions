@@ -346,10 +346,13 @@ class BaseFunction(object):
                     group_base.append(pd.Grouper(axis=0, level=df.index.names.index(s)))
                     
         if len(group_base)>0:
-            entity_type = self.get_entity_type()
 
             df = df.groupby(group_base).apply(self._calc)
 
+            self.log_df_info(df,'Index after executing %s '%self.__class__.__name__)
+            # There is a chance that after _calc user can remove or reset index by mistake.
+            # So we are adding it back again.
+            entity_type = self.get_entity_type()
             df = entity_type.index_df(df)
         else:
             df = self._calc(df)

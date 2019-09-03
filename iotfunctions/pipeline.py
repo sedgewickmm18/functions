@@ -3739,6 +3739,7 @@ class CalcPipeline:
                                                 register = register,
                                                 dropna =  dropna
                                                 )
+            # After the data source retrieval we may not have any index. So we are adding index to the dataframe.
             df = self.entity_type.index_df(df)
 
         else:

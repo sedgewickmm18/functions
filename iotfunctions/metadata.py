@@ -988,6 +988,10 @@ class EntityType(object):
                 df = df.set_index([self._df_index_entity_id,
                                    self._timestamp])
             except KeyError:
+                # When user reset multi-index he may have None index column in his data frame.
+                # We can not reset None index because it uses default column name. Which may be already present in
+                # our dataframe. So its a hot fix to make None index to __unknown_index_0__, __unknown_index_1__
+                # and delete this column after reset index.
                 try:
                     if df.index.names[0] is None:
                         df.index.set_names( "__unknown_index_0__", level=0, inplace=True)
