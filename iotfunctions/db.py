@@ -2196,6 +2196,8 @@ class Database(object):
                         raise ValueError('Filter column %s not found in table or dimension' % d)
                 if isinstance(members, str):
                     members = [members]
+                if isinstance(members, int):
+                    members = [members]
                 if not isinstance(members, list):
                     raise ValueError('Invalid filter on %s. Provide a list of members to filter on not %s' % (
                         d, members))
