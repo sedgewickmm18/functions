@@ -2198,6 +2198,8 @@ class Database(object):
                     members = [members]
                 if isinstance(members, int):
                     members = [members]
+                if isinstance(members, float):
+                    members = [members]
                 if not isinstance(members, list):
                     raise ValueError('Invalid filter on %s. Provide a list of members to filter on not %s' % (
                         d, members))
