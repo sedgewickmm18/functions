@@ -229,8 +229,8 @@ class EntityType(object):
             self.logical_name = name
 
         name = name.lower()
-        name = name.replace(' ', '_')
-        name = name.replace('-', '_')
+        #name = name.replace(' ', '_')
+        #name = name.replace('-', '_')
         self.name = name
         self.description = kwargs.get('description', None)
         if self.description is None:
